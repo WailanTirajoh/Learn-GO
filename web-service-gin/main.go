@@ -52,8 +52,8 @@ func postAlbums(c *gin.Context) {
 		return
 	}
 
-	for _, a := range albums {
-		if a.ID == newAlbum.ID {
+	for _, album := range albums {
+		if album.ID == newAlbum.ID {
 			c.IndentedJSON(http.StatusForbidden, gin.H{"message": "Data already exists for id " + newAlbum.ID})
 			return
 		}
@@ -71,20 +71,51 @@ func getAlbumByID(c *gin.Context) {
 
 	// Loop over the list of albums, looking for
 	// an album whose ID value matches the parameter.
-	for _, a := range albums {
-		if a.ID == id {
-			c.IndentedJSON(http.StatusOK, a)
+	for _, album := range albums {
+		if album.ID == id {
+			c.IndentedJSON(http.StatusOK, album)
 			return
 		}
 	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
 }
 
+func destroyAlbumByID(c *gin.Context) {
+	id := c.Param("album")
+
+	index := SliceIndex(len(albums), func(i int) bool { return albums[i].ID == id })
+
+	if index < 0 {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Album for id " + id + " not found"})
+		return
+	}
+
+	albums = removeSliceByIndex(albums, index)
+	c.IndentedJSON(http.StatusOK, albums)
+}
+
+// Utils
+func SliceIndex(limit int, predicate func(i int) bool) int {
+	for i := 0; i < limit; i++ {
+		if predicate(i) {
+			return i
+		}
+	}
+	return -1
+}
+
+func removeSliceByIndex(slice []album, s int) []album {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+// End Utils
+
 func main() {
 	router := gin.Default()
 	router.GET("/albums", getAlbums)
 	router.POST("/albums", postAlbums)
 	router.GET("/albums/:album", getAlbumByID)
+	router.DELETE("/albums/:album", destroyAlbumByID)
 
 	router.Run("localhost:8080")
 }
